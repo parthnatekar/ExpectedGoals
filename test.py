@@ -5,6 +5,11 @@ df_outfield = get_outfield_data('https://fbref.com/en/comps/9/','/Premier-League
 
 df_outfield.to_csv('PL2021_Outfield.csv',index=False)
 
+df_outfield_WC = get_outfield_data('https://fbref.com/en/comps/1/2018/','/2018-FIFA-World-Cup-Stats')
+
+
+df_outfield_WC.to_csv('WC2018_Outfield.csv',index=False)
+
 # For Goalkeepers, row names have changed, need to manually replace those before
 # extracting
 
