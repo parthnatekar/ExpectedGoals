@@ -68,18 +68,20 @@ class LinearModel:
 
 	def buildLinearModel(self, variables_dict, model_type = 'linear_regression'):
 		y = self.data[variables_dict['dependent']].values
-		X = self.data.select_dtypes(include=np.number).apply(lambda x: x.fillna(x.mean()),axis=0).drop(['international_xg_per90', 'international_goals_per90'], axis=1)
+		# X = self.data.select_dtypes(include=np.number).apply(lambda x: x.fillna(x.mean()),axis=0).filter(regex='club')
+		X = self.data[variables_dict['independent']].values
 
 		positions_list = ['FW']
-
 		# print(self.data['club_position'].values in positions_list)
 
 		# y = y[(self.data['rest_of_club_team_cardinality'].values > 8)]
 		# X = X[(self.data['rest_of_club_team_cardinality'].values > 8)]
 
-		print(len(X))
-
 		self.reg = LinearRegression().fit(X, y)
+
+		# coeff = pd.concat([pd.DataFrame(X.columns), pd.DataFrame(np.transpose(self.reg.coef_))], axis = 1)
+
+		# coeff.to_csv('coeff.csv')
 
 		print(self.reg.score(X, y))
 
@@ -109,7 +111,7 @@ if __name__ == '__main__':
 	L.merged.to_csv('Euro21_PL21_corrected.csv')
 
 	fit_variables_dict = {'dependent': 'international_xg_per90',
-	'independent': ['club_sca_per90']}
+	'independent': ['club_npxg_per90', 'club_goals_assists_per90']}
 
 	M = LinearModel(L.merged)
 	M.buildLinearModel(fit_variables_dict)
