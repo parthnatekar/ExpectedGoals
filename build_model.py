@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scrape_data import *
 from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 
 class DataGenerator:
 
@@ -13,36 +14,49 @@ class DataGenerator:
 			self.data2 = dataframe2
 			self.data2 = self.data2.add_prefix('international_')
 
+		self.merged = pd.merge(self.data, self.data2, how = 'inner', left_on = 'club_player', right_on='international_player')
+
 	def getStatistics(self, column_name = ''):
 		column = self.data[column_name].values
 		mean = np.mean(column)
 		variance = np.var(column)
 		return mean, variance
 
+	def plotDistribution(self, column_name = ''):
+		column = self.merged[column_name].values
+		plt.hist(column, bins=30)
+		plt.show()
+
 	def createTeamVariable(self, column_name):
 		group_data = {}
-		for team in self.data.groupby(by = ['club_team']).groups.keys():
-			group_data[team] = self.data.groupby(by = ['club_team']).get_group(team)
+		for team in self.merged.groupby(by = ['club_team']).groups.keys():
+			group_data[team] = self.merged.groupby(by = ['club_team']).get_group(team)
 
 		group_statistic = []
-		for i in range(len(self.data)):
-			player_team = self.data.iloc[i]['club_team']
-			team_data_without_player = group_data[player_team][group_data[player_team]['club_player'] != self.data.iloc[i]['club_player']]
-			group_statistic.append(np.mean(team_data_without_player['club_' + column_name].values))
+		cardinality = []
+		for i in range(len(self.merged)):
+			player_team = self.merged.iloc[i]['club_team']
+			team_data_without_player = group_data[player_team][group_data[player_team]['club_player'] != self.merged.iloc[i]['club_player']]
+			cardinality.append(len(group_data[player_team][group_data[player_team]['club_player'] != self.merged.iloc[i]['club_player']]))
+			group_statistic.append(np.nanmean(team_data_without_player['club_' + column_name].values))
 
-		self.data['rest_of_team_{}'.format('club_' + column_name)] = pd.Series(group_statistic)
+		self.merged['rest_of_club_team_{}'.format('club_' + column_name)] = pd.Series(group_statistic)
+		self.merged['rest_of_club_team_{}'.format('cardinality')] = pd.Series(cardinality)
 
-		group_data = {}
-		for team in self.data2.groupby(by = ['international_team']).groups.keys():
-			group_data[team] = self.data2.groupby(by = ['international_team']).get_group(team)
+		# group_data = {}
+		# for team in self.merged.groupby(by = ['international_team']).groups.keys():
+		# 	group_data[team] = self.merged.groupby(by = ['international_team']).get_group(team)
 
-		group_statistic = []
-		for i in range(len(self.data2)):
-			player_team = self.data2.iloc[i]['international_team']
-			team_data_without_player = group_data[player_team][group_data[player_team]['international_player'] != self.data2.iloc[i]['international_player']]
-			group_statistic.append(np.mean(team_data_without_player['international_' + column_name].values))
+		# group_statistic = []
+		# cardinality = []
+		# for i in range(len(self.merged)):
+		# 	player_team = self.merged.iloc[i]['international_team']
+		# 	team_data_without_player = group_data[player_team][group_data[player_team]['international_player'] != self.merged.iloc[i]['international_player']]
+		# 	cardinality.append(len(group_data[player_team][group_data[player_team]['club_player'] != self.merged.iloc[i]['club_player']]))
+		# 	group_statistic.append(np.nanmean(team_data_without_player['club_' + column_name].values))
 
-		self.data2['rest_of_team_{}'.format('international_' + column_name)] = pd.Series(group_statistic)
+		# self.merged['rest_of_international_team_{}'.format('club_' + column_name)] = pd.Series(group_statistic)
+		# self.merged['rest_of_international_team_{}'.format('cardinality')] = pd.Series(cardinality)
 
 	def createCombinedDataframe(self):
 		return pd.merge(self.data, self.data2, left_on = 'club_player', right_on='international_player')
@@ -53,29 +67,57 @@ class LinearModel:
 		self.data = dataframe
 
 	def buildLinearModel(self, variables_dict, model_type = 'linear_regression'):
-		y = self.data[variables_dict['dependent']]
-		X = self.data[variables_dict['independent']]
+		y = self.data[variables_dict['dependent']].values
+		X = self.data.select_dtypes(include=np.number).apply(lambda x: x.fillna(x.mean()),axis=0).drop(['international_xg_per90', 'international_goals_per90'], axis=1)
 
-		reg = LinearRegression().fit(X, y)
+		positions_list = ['FW']
 
-		print(reg.score(X, y), reg.coef_)
+		# print(self.data['club_position'].values in positions_list)
+
+		# y = y[(self.data['rest_of_club_team_cardinality'].values > 8)]
+		# X = X[(self.data['rest_of_club_team_cardinality'].values > 8)]
+
+		print(len(X))
+
+		self.reg = LinearRegression().fit(X, y)
+
+		print(self.reg.score(X, y))
+
+	def evaluateLinearModel(self, variables_dict):
+		y = self.data[variables_dict['dependent']].values
+		X = self.data[variables_dict['independent']].values
+		
+		y = y[self.data['rest_of_international_team_cardinality'].values > 8]
+		X = X[self.data['rest_of_international_team_cardinality'].values > 8]
+
+		print(self.reg.score(X, y))
 
 if __name__ == '__main__':
-	dataframe = pd.read_csv('/home/parth/Projects/UCSD/ProbabilityAndStatistics/Project/data/PL2020-21_Outfield.csv')
+	dataframe = pd.read_csv('/home/parth/Projects/UCSD/ProbabilityAndStatistics/Project/data/Big52020-21_Outfield.csv')
 	dataframe2 = pd.read_csv('/home/parth/Projects/UCSD/ProbabilityAndStatistics/Project/data/Euro2021_Outfield.csv')
 	L = DataGenerator(dataframe, dataframe2)
 
-	L.createTeamVariable('assists_per90')
-	L.createTeamVariable('goals_per90')
-	L.createTeamVariable('xg_xg_assist_per90')
-	L.createTeamVariable('passes_pct')
-	L.createTeamVariable('passes_completed')
+	L.createTeamVariable('xg_assist_per90')
+	# L.createTeamVariable('goals_per90')
+	# L.createTeamVariable('xg_xg_assist_per90')
+	# L.createTeamVariable('passes_pct')
+	# L.createTeamVariable('passes_completed')
+	L.createTeamVariable('sca_per90')
 
-	merged = L.createCombinedDataframe()
-	merged.to_csv('Euro21_PL21.csv')
+	L.merged['club_goals_minus_xg_per90'] = L.merged['club_goals_per90'] - L.merged['club_xg_per90']
+	L.merged['club_touches_att_3rd_per90'] = L.merged['club_touches_att_3rd']*90/L.merged['club_minutes']
+	L.merged.to_csv('Euro21_PL21_corrected.csv')
 
-	variables_dict = {'dependent': 'international_goals_per90',
-	'independent': ['club_goals_per90', 'rest_of_team_international_assists_per90', 'rest_of_team_international_xg_xg_assist_per90']}
+	fit_variables_dict = {'dependent': 'international_xg_per90',
+	'independent': ['club_sca_per90']}
 
-	M = LinearModel(merged)
-	M.buildLinearModel(variables_dict)
+	M = LinearModel(L.merged)
+	M.buildLinearModel(fit_variables_dict)
+
+	# predict_variables_dict = {'dependent': 'international_goals_per90',
+	# 'independent': ['rest_of_international_team_club_xg_assist_per90', 
+	# 			    'rest_of_international_team_club_sca_per90']}
+
+	# M.evaluateLinearModel(predict_variables_dict)
+
+	L.plotDistribution('club_touches_att_3rd_per90')

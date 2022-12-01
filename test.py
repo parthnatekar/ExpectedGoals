@@ -1,9 +1,9 @@
 from statsbombpy import sb
 from scrape_data import *
 
-df_outfield = get_outfield_data('https://fbref.com/en/comps/9/2018-2019/','/2018-2019-Premier-League-Stats')
+df_outfield = get_outfield_data('https://fbref.com/en/comps/Big5/2020-2021/','/players/2020-2021-Big-5-European-Leagues-Stats')
 
-df_outfield.to_csv('data/PL2018-19_Outfield.csv',index=False)
+df_outfield.to_csv('data/Big52020-21_Outfield.csv',index=False)
 
 # df_outfield_WC = get_outfield_data('https://fbref.com/en/comps/676/','/European-Championship-Stats')
 
