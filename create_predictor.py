@@ -3,6 +3,7 @@ import pandas as pd
 from scrape_data import *
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import scipy.stats as ss
@@ -43,7 +44,7 @@ class WorldCupPredictor:
 		for group in self.groups:
 			for team in self.groups[group]:
 				self.expectedGoals[team] = self.data.loc[self.data['Squad'].str.contains(team)]['Gls.1'].values[0]
-		print(self.expectedGoals)
+		# print(self.expectedGoals)
 
 	def predictGroupStages(self):
 		
@@ -119,7 +120,7 @@ class WorldCupPredictor:
 
 		self.filledBracket['Winner'] = [recursivePredict(self.knockoutTree, stage)]
 
-	def runSimulation(self, n = 10):
+	def runSimulation(self, n = 1000):
 
 		for i in range(n):
 			self.predictGroupStages()
@@ -134,10 +135,90 @@ class WorldCupPredictor:
 
 		for item in self.stageCounts:
 			self.stageCounts[item] = {k:v/len(self.stageCounts[item]) for k, v in Counter(self.stageCounts[item]).items()}
-		
-		print(self.stageCounts)
+	
+	def plotBracket(self):
+		groups = ['A', 'C', 'E', 'G']
+		for i in range(1, 8, 2):
+			plt.clf()
+			D = self.stageCounts['Bracket-{}'.format(i)]
+			plt.bar(range(len(D)), list(D.values()), align='center', color = list(plt.rcParams['axes.prop_cycle'])[0]['color'])
+			plt.ylim([0, 1])
+			plt.xticks(range(len(D)), list(D.keys()))
+			plt.title('Group {} Winner Probability'.format(groups[i//2]))
+			plt.savefig('images/Group {} Winners.png'.format(groups[i//2]))
+
+		groups = ['A', 'C', 'E', 'G']
+		for i in range(9, 16, 2):
+			plt.clf()
+			D = self.stageCounts['Bracket-{}'.format(i)]
+			plt.bar(range(len(D)), list(D.values()), align='center', color = list(plt.rcParams['axes.prop_cycle'])[0]['color'])
+			plt.ylim([0, 1])
+			plt.xticks(range(len(D)), list(D.keys()))
+			plt.title('Group {} Runners-Up Probability'.format(groups[(i-9)//2]))
+			plt.savefig('images/Group {} Runners-Up.png'.format(groups[(i-9)//2]))
+
+		groups = ['B', 'D', 'F', 'H']
+		for i in range(10, 17, 2):
+			plt.clf()
+			D = self.stageCounts['Bracket-{}'.format(i)]
+			plt.bar(range(len(D)), list(D.values()), align='center', color = list(plt.rcParams['axes.prop_cycle'])[0]['color'])
+			plt.ylim([0, 1])
+			plt.xticks(range(len(D)), list(D.keys()))
+			plt.title('Group {} Winner Probability'.format(groups[(i-9)//2]))
+			plt.savefig('images/Group {} Winners.png'.format(groups[(i-9)//2]))
+
+		groups = ['B', 'D', 'F', 'H']
+		for i in range(2, 9, 2):
+			plt.clf()
+			D = self.stageCounts['Bracket-{}'.format(i)]
+			plt.bar(range(len(D)), list(D.values()), align='center', color = list(plt.rcParams['axes.prop_cycle'])[0]['color'])
+			plt.ylim([0, 1])
+			plt.xticks(range(len(D)), list(D.keys()))
+			plt.title('Group {} Runners-Up Probability'.format(groups[(i-9)//2]))
+			plt.savefig('images/Group {} Runners-Up.png'.format(groups[(i-9)//2]))
+
+		for i in range(1, 9):
+			plt.clf()
+			D = self.stageCounts['Pre-Quarter-{}'.format(i)]
+			plt.bar(range(len(D)), list(D.values()), align='center', 
+				color = list(plt.rcParams['axes.prop_cycle'])[1]['color'])
+			plt.ylim([0, 1])
+			plt.xticks(range(len(D)), list(D.keys()), rotation=45, ha='right')
+			plt.title('Pre-Quarter-{} Winner Probability'.format(i))
+			plt.tight_layout()
+			plt.savefig('images/Pre-Quarter-{} Winners.png'.format(i))
+
+		for i in range(1, 5):
+			plt.clf()
+			D = self.stageCounts['Quarter-Final-{}'.format(i)]
+			plt.bar(range(len(D)), list(D.values()), align='center', color = list(plt.rcParams['axes.prop_cycle'])[2]['color'])
+			plt.ylim([0, 1])
+			plt.xticks(range(len(D)), list(D.keys()), rotation=45, ha='right')
+			plt.title('Quarter-Final-{} Winner Probability'.format(i))
+			plt.tight_layout()
+			plt.savefig('images/Quarter-Final-{} Winners.png'.format(i))
+
+		for i in range(1, 3):
+			plt.clf()
+			D = self.stageCounts['Semi-Final-{}'.format(i)]
+			plt.bar(range(len(D)), list(D.values()), align='center', color = list(plt.rcParams['axes.prop_cycle'])[3]['color'])
+			plt.ylim([0, 1])
+			plt.xticks(range(len(D)), list(D.keys()), rotation=45, ha='right')
+			plt.title('Semi-Final-{} Winner Probability'.format(i))
+			plt.tight_layout()
+			plt.savefig('images/Semi-Final-{} Winners.png'.format(i))
+
+		plt.clf()
+		D = self.stageCounts['Winner']
+		plt.bar(range(len(D)), list(D.values()), align='center', color = list(plt.rcParams['axes.prop_cycle'])[4]['color'])
+		plt.ylim([0, 1])
+		plt.xticks(range(len(D)), list(D.keys()), rotation=45, ha='right')
+		plt.title('Winner Probability')
+		plt.tight_layout()
+		plt.savefig('images/Winners.png')
 
 if __name__ == '__main__':
 	W = WorldCupPredictor('/home/parth/Projects/UCSD/ProbabilityAndStatistics/Project/qualification_data')
 	W.computeExpectedTeamGoals()
 	W.runSimulation()
+	W.plotBracket()
