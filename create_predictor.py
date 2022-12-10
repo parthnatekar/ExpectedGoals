@@ -13,6 +13,7 @@ import os
 from collections import defaultdict
 import itertools
 from functools import reduce
+from collections import Counter
 
 class WorldCupPredictor:
 
@@ -45,6 +46,7 @@ class WorldCupPredictor:
 		print(self.expectedGoals)
 
 	def predictGroupStages(self):
+		
 		self.groupPredictions = {group:{team:np.array([0, 0]) for team in self.groups[group]} for group in self.groups}
 
 		for group in self.groups:
@@ -67,18 +69,7 @@ class WorldCupPredictor:
 		self.groupWinners = {group:[team for team, value in list(self.groupPredictions[group].items())[:2]] for group in self.groupPredictions}
 	
 	def createKnockoutTree(self):
-		# self.knockoutTree = [[[[self.groupWinners['A'][0], self.groupWinners['B'][1]],
-		# 					   [self.groupWinners['C'][0], self.groupWinners['D'][1]]],
 
-		# 					[[[self.groupWinners['E'][0], self.groupWinners['F'][1]],
-		# 					  [self.groupWinners['G'][0], self.groupWinners['H'][1]]]]],
-
-		# 					[[[self.groupWinners['A'][1], self.groupWinners['B'][0]],
-		# 					  [self.groupWinners['C'][1], self.groupWinners['D'][0]]],
-
-		# 					[[[self.groupWinners['E'][1], self.groupWinners['F'][0]],
-		# 					  [self.groupWinners['G'][1], self.groupWinners['H'][0]]]]]]
-		
 		def add_element(root, path, data):
 			reduce(lambda x, y: x[y], path[:-1], root)[path[-1]] = data
 
@@ -108,17 +99,17 @@ class WorldCupPredictor:
 
 		stage = 4
 
-		self.filledBracket = {0:[], 1:[], 2:[], 3:[]}
+		self.filledBracket = {}
 
 		def recursivePredict(tree, stage):
-			# print(tree, '\n')
 			stage -= 1
 			if not isinstance(list(tree.values())[0], str):
 				for item in tree:
 					tree[item] = recursivePredict(tree[item], stage)	
 			eG1 = poisson.rvs(self.expectedGoals[list(tree.values())[0]])
 			eG2 = poisson.rvs(self.expectedGoals[list(tree.values())[1]])
-			self.filledBracket[stage].append([list(tree.values())[0], eG1, list(tree.values())[1], eG2])
+			self.filledBracket[list(tree.keys())[0]] = [list(tree.values())[0]]
+			self.filledBracket[list(tree.keys())[1]] = [list(tree.values())[1]]
 			if eG1 > eG2:
 				return list(tree.values())[0]
 			elif eG1 < eG2:
@@ -126,12 +117,27 @@ class WorldCupPredictor:
 			else:
 				return np.random.choice(list(tree.values()))
 
-		print(recursivePredict(self.knockoutTree, stage), self.filledBracket) 
-							 
+		self.filledBracket['Winner'] = [recursivePredict(self.knockoutTree, stage)]
+
+	def runSimulation(self, n = 10):
+
+		for i in range(n):
+			self.predictGroupStages()
+			self.createKnockoutTree()
+			self.predictKnockouts()
+
+			try:
+				for item in self.stageCounts:
+					self.stageCounts[item] += self.filledBracket[item]
+			except AttributeError:
+				self.stageCounts = self.filledBracket
+
+		for item in self.stageCounts:
+			self.stageCounts[item] = {k:v/len(self.stageCounts[item]) for k, v in Counter(self.stageCounts[item]).items()}
+		
+		print(self.stageCounts)
 
 if __name__ == '__main__':
 	W = WorldCupPredictor('/home/parth/Projects/UCSD/ProbabilityAndStatistics/Project/qualification_data')
 	W.computeExpectedTeamGoals()
-	W.predictGroupStages()
-	W.createKnockoutTree()
-	W.predictKnockouts()
+	W.runSimulation()
