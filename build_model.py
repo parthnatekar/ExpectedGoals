@@ -75,19 +75,40 @@ class DataGenerator:
 
 	def createTeamVariable(self, column_name):
 		group_data = {}
+
+		# Group data for each club team into a dictionary
 		for team in self.merged.groupby(by = ['club_team']).groups.keys():
 			group_data[team] = self.merged.groupby(by = ['club_team']).get_group(team)
 
 		group_statistic = []
 		cardinality = []
+
+		# For each player in the data, creates a column of mean of club variable values of the international teammates of each player,
+		# For example, for Cristiano Ronaldo, it creates a column of mean([Marcus Rashford MUN value, Antony MUN value, ...])
+
 		for i in range(len(self.merged)):
+
+			# Get the player team
 			player_team = self.merged.iloc[i]['club_team']
+
+			# Get only the data for that team, then remove that player from the data
 			team_data_without_player = group_data[player_team][group_data[player_team]['club_player'] != self.merged.iloc[i]['club_player']]
+			
+			# Store the number of team members found
 			cardinality.append(len(group_data[player_team][group_data[player_team]['club_player'] != self.merged.iloc[i]['club_player']]))
+			
+			# Append the mean of the team members variable value (given by column name argument)
 			group_statistic.append(np.nanmean(team_data_without_player['club_' + column_name].values))
 
+		# Add the new column to the dataframe
 		self.merged['rest_of_club_team_{}'.format('club_' + column_name)] = pd.Series(group_statistic)
 		self.merged['rest_of_club_team_{}'.format('cardinality')] = pd.Series(cardinality)
+
+
+		## The next code does the same, but replaces the club team of the player by the international team,
+		## i.e. it creates a column of mean of club variable values of the international teammates of each player,
+		## For example, for Cristiano Ronaldo, it creates a column of mean([Joao Felix ATM value, Bernardo Silva MCI, ...])
+
 
 		# group_data = {}
 		# for team in self.merged.groupby(by = ['international_team']).groups.keys():

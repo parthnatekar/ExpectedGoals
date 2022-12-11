@@ -120,7 +120,7 @@ class WorldCupPredictor:
 
 		self.filledBracket['Winner'] = [recursivePredict(self.knockoutTree, stage)]
 
-	def runSimulation(self, n = 1000):
+	def runSimulation(self, n = 10000):
 
 		for i in range(n):
 			self.predictGroupStages()
@@ -136,6 +136,8 @@ class WorldCupPredictor:
 		for item in self.stageCounts:
 			self.stageCounts[item] = {k:v/len(self.stageCounts[item]) for k, v in Counter(self.stageCounts[item]).items()}
 	
+		print(dict(sorted(self.stageCounts['Winner'].items(), key=lambda item: item[1])))
+
 	def plotBracket(self):
 		groups = ['A', 'C', 'E', 'G']
 		for i in range(1, 8, 2):
@@ -221,4 +223,4 @@ if __name__ == '__main__':
 	W = WorldCupPredictor('/home/parth/Projects/UCSD/ProbabilityAndStatistics/Project/qualification_data')
 	W.computeExpectedTeamGoals()
 	W.runSimulation()
-	W.plotBracket()
+	# W.plotBracket()
