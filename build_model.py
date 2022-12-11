@@ -83,7 +83,7 @@ class DataGenerator:
 		group_statistic = []
 		cardinality = []
 
-		# For each player in the data, creates a column of mean of club variable values of the international teammates of each player,
+		# For each player in the data, creates a column of mean of club variable values of the club teammates of each player,
 		# For example, for Cristiano Ronaldo, it creates a column of mean([Marcus Rashford MUN value, Antony MUN value, ...])
 
 		for i in range(len(self.merged)):
